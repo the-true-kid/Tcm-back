@@ -29,7 +29,6 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login Route
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -50,11 +49,14 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
+    console.log('Generated Token:', token); // Debugging
+
     res.json({ token });
   } catch (error) {
     console.error('Login error:', error.message);
     res.status(500).json({ message: 'Server error.' });
   }
 });
+
 
 module.exports = router;

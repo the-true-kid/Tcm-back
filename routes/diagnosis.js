@@ -11,13 +11,14 @@ router.post('/new', async (req, res) => {
 
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ message: 'Authorization token is missing' });
+      return res.status(401).json({ 
+        message: 'Authorization token is missing. Please log in.' 
+      });
     }
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
-    console.log('User ID from token:', userId);
 
     const report = JSON.stringify(req.body);
     console.log('Creating new diagnosis with:', { userId, report });
@@ -30,10 +31,14 @@ router.post('/new', async (req, res) => {
     console.error('Error in POST /api/diagnosis/new:', error.message);
 
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ message: 'Invalid token' });
+      return res.status(401).json({ 
+        message: 'Invalid or expired token. Please re-authenticate.' 
+      });
     }
 
-    res.status(500).json({ message: 'Server error: ' + error.message });
+    res.status(500).json({ 
+      message: `Failed to create diagnosis: ${error.message}` 
+    });
   }
 });
 
@@ -44,21 +49,38 @@ router.get('/user/reports', async (req, res) => {
 
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ message: 'Authorization token is missing' });
+      return res.status(401).json({ 
+        message: 'Authorization token is missing. Please log in to view reports.' 
+      });
     }
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
+
     console.log('Fetching diagnoses for user ID:', userId);
-
     const diagnoses = await getUserDiagnoses(userId);
-    console.log('Fetched diagnoses:', diagnoses);
 
+    if (!diagnoses || diagnoses.length === 0) {
+      return res.status(404).json({ 
+        message: 'No diagnosis reports found for this user.' 
+      });
+    }
+
+    console.log('Fetched diagnoses:', diagnoses);
     res.json(diagnoses);
   } catch (error) {
     console.error('Error in GET /api/diagnosis/user/reports:', error.message);
-    res.status(500).json({ message: 'Server error: ' + error.message });
+
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ 
+        message: 'Invalid or expired token. Please re-authenticate.' 
+      });
+    }
+
+    res.status(500).json({ 
+      message: `Failed to fetch reports: ${error.message}` 
+    });
   }
 });
 

@@ -16,4 +16,12 @@ const findUserByEmail = async (email) => {
   return result.rows[0];
 };
 
-module.exports = { createUser, findUserByEmail };
+const findUserById = async (id) => {
+  const result = await pool.query(
+    'SELECT id, email FROM users WHERE id = $1',
+    [id]
+  );
+  return result.rows[0]; // Return the first user found or undefined
+};
+
+module.exports = { createUser, findUserByEmail, findUserById };
