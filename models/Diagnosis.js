@@ -1,4 +1,4 @@
-const pool = require('../config/dbConfig');
+const pool = require('../config/dbConfig'); // Ensure correct DB connection
 
 const createDiagnosis = async (userId, report) => {
   const result = await pool.query(
@@ -16,4 +16,13 @@ const getUserDiagnoses = async (userId) => {
   return result.rows;
 };
 
-module.exports = { createDiagnosis, getUserDiagnoses };
+// Add the missing function to fetch a diagnosis by ID
+const getDiagnosisById = async (id) => {
+  const result = await pool.query(
+    'SELECT * FROM diagnoses WHERE id = $1',
+    [id]
+  );
+  return result.rows[0]; // Return the first row or undefined
+};
+
+module.exports = { createDiagnosis, getUserDiagnoses, getDiagnosisById };

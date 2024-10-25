@@ -1,86 +1,69 @@
-// routes/diagnosis.js
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const { createDiagnosis, getUserDiagnoses } = require('../models/Diagnosis');
+const { getUserDiagnoses, createDiagnosis, getDiagnosisById } = require('../models/Diagnosis'); 
+const { getChatsByDiagnosisId } = require('../models/Chat');
 const router = express.Router();
+require('dotenv').config();
 
-// Route to handle new diagnosis submission
+// Route to create a new diagnosis
 router.post('/new', async (req, res) => {
   try {
-    console.log('POST /api/diagnosis/new called');
-
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ 
-        message: 'Authorization token is missing. Please log in.' 
-      });
-    }
-
-    const token = authHeader.split(' ')[1];
+    const token = req.headers.authorization.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
 
-    const report = JSON.stringify(req.body);
-    console.log('Creating new diagnosis with:', { userId, report });
+    const report = JSON.stringify(req.body); // Convert form data to JSON
+    console.log('Creating new diagnosis for user:', userId);
 
-    const diagnosis = await createDiagnosis(userId, report);
-    console.log('Diagnosis created successfully:', diagnosis);
+    const diagnosis = await createDiagnosis(userId, report); // Store in DB
+    console.log('New diagnosis created:', diagnosis);
 
     res.status(201).json(diagnosis);
   } catch (error) {
-    console.error('Error in POST /api/diagnosis/new:', error.message);
-
+    console.error('Error creating diagnosis:', error.message);
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ 
-        message: 'Invalid or expired token. Please re-authenticate.' 
-      });
+      return res.status(401).json({ message: 'Invalid or expired token.' });
     }
-
-    res.status(500).json({ 
-      message: `Failed to create diagnosis: ${error.message}` 
-    });
+    res.status(500).json({ message: 'Failed to create diagnosis.' });
   }
 });
 
-// Route to get all diagnoses for the logged-in user
+// Route to get all diagnoses for a user along with chat data
 router.get('/user/reports', async (req, res) => {
   try {
-    console.log('GET /api/diagnosis/user/reports called');
-
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ 
-        message: 'Authorization token is missing. Please log in to view reports.' 
-      });
-    }
-
-    const token = authHeader.split(' ')[1];
+    const token = req.headers.authorization.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
 
-    console.log('Fetching diagnoses for user ID:', userId);
     const diagnoses = await getUserDiagnoses(userId);
 
-    if (!diagnoses || diagnoses.length === 0) {
-      return res.status(404).json({ 
-        message: 'No diagnosis reports found for this user.' 
-      });
-    }
+    const sessions = await Promise.all(
+      diagnoses.map(async (diagnosis) => {
+        const chat = await getChatsByDiagnosisId(diagnosis.id); // Get chat for this diagnosis
+        return { ...diagnosis, chat: chat[0] }; // Attach the first chat message
+      })
+    );
 
-    console.log('Fetched diagnoses:', diagnoses);
-    res.json(diagnoses);
+    res.json(sessions); // Send combined sessions data
   } catch (error) {
-    console.error('Error in GET /api/diagnosis/user/reports:', error.message);
+    console.error('Error fetching reports:', error.message);
+    res.status(500).json({ message: 'Failed to fetch reports.' });
+  }
+});
 
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ 
-        message: 'Invalid or expired token. Please re-authenticate.' 
-      });
+// Route to get a specific diagnosis by ID (useful for detailed view)
+router.get('/:id', async (req, res) => {
+  try {
+    const diagnosis = await getDiagnosisById(req.params.id);
+
+    if (!diagnosis) {
+      return res.status(404).json({ message: 'Diagnosis not found.' });
     }
 
-    res.status(500).json({ 
-      message: `Failed to fetch reports: ${error.message}` 
-    });
+    res.json(diagnosis);
+  } catch (error) {
+    console.error('Error fetching diagnosis:', error.message);
+    res.status(500).json({ message: 'Failed to fetch diagnosis.' });
   }
 });
 

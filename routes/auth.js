@@ -1,3 +1,4 @@
+// auth.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -8,10 +9,10 @@ require('dotenv').config();
 // Register Route
 router.post('/register', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { name, email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required.' });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required.' });
     }
 
     const existingUser = await findUserByEmail(email);
@@ -20,7 +21,7 @@ router.post('/register', async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await createUser(email, hashedPassword);
+    const user = await createUser(name, email, hashedPassword); // Include name
 
     res.status(201).json(user);
   } catch (error) {
@@ -57,6 +58,5 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 });
-
 
 module.exports = router;
