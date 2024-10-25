@@ -39,12 +39,16 @@ router.get('/user/reports', async (req, res) => {
 
     const sessions = await Promise.all(
       diagnoses.map(async (diagnosis) => {
-        const chat = await getChatsByDiagnosisId(diagnosis.id); // Get chat for this diagnosis
-        return { ...diagnosis, chat: chat[0] }; // Attach the first chat message
+        const chats = await getChatsByDiagnosisId(diagnosis.id);
+        return { 
+          sessionId: diagnosis.id, // Explicitly set sessionId
+          ...diagnosis, 
+          chat: chats.length ? chats[0] : null 
+        }; 
       })
     );
 
-    res.json(sessions); // Send combined sessions data
+    res.json(sessions);
   } catch (error) {
     console.error('Error fetching reports:', error.message);
     res.status(500).json({ message: 'Failed to fetch reports.' });
@@ -60,7 +64,8 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Diagnosis not found.' });
     }
 
-    res.json(diagnosis);
+    const chats = await getChatsByDiagnosisId(req.params.id); // Fetch chats for this diagnosis
+    res.json({ diagnosis, chats }); // Return both diagnosis and chats
   } catch (error) {
     console.error('Error fetching diagnosis:', error.message);
     res.status(500).json({ message: 'Failed to fetch diagnosis.' });
