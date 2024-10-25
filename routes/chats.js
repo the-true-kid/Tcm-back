@@ -21,7 +21,12 @@ router.post('/tcm-diagnosis', async (req, res) => {
     const prompt = `
       Analyze the following diagnosis from a Traditional Chinese Medicine perspective:
       ${diagnosis.diagnosis_report}
-      Provide a summary and recommendations for lifestyle, food, and herbal remedies.
+      Provide the following sections:
+      1. Summary of the diagnosis
+      2. Conceptual information (TCM principles related to the diagnosis)
+      3. Dietary recommendations
+      4. Herbal recommendations
+      5. Lifestyle recommendations
     `;
 
     // Call the OpenAI API with the prompt
@@ -40,12 +45,23 @@ router.post('/tcm-diagnosis', async (req, res) => {
       }
     );
 
-    const chatContent = response.data.choices[0].message.content;
+    const rawContent = response.data.choices[0].message.content;
 
-    // Save the generated chat content in the chat table
-    const chat = await createChat(diagnosis.user_id, diagnosisId, chatContent);
+    // Parse the response content into structured sections
+    const [summary, conceptual, dietary, herbal, lifestyle] = rawContent.split('\n\n').map(s => s.trim());
 
-    res.status(201).json({ chat });
+    const chatContent = {
+      summary,
+      conceptualInfo: conceptual,
+      dietaryRecommendations: dietary,
+      herbalRecommendations: herbal,
+      lifestyleRecommendations: lifestyle,
+    };
+
+    // Save the structured chat content in the chat table
+    const chat = await createChat(diagnosis.user_id, diagnosisId, JSON.stringify(chatContent));
+
+    res.status(201).json({ chat: chatContent });
   } catch (error) {
     console.error('Error in TCM diagnosis route:', error.message || error.response?.data);
     res.status(500).json({ message: 'Failed to process TCM diagnosis.' });

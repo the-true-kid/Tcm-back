@@ -6,6 +6,7 @@ const authRoutes = require('./routes/auth');
 const diagnosisRoutes = require('./routes/diagnosis');
 const userRoutes = require('./routes/user');
 const chatRoutes = require('./routes/chats'); // Import chats route
+const sessionRoutes = require('./routes/session'); // Import session route
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/auth', authRoutes); // Authentication routes
 app.use('/api/diagnosis', diagnosisRoutes); // Diagnosis routes
 app.use('/api/user', userRoutes); // User routes
 app.use('/api/chats', chatRoutes); // Chats routes
+app.use('/api/session', sessionRoutes); // New session route
 
 // Start server
 const PORT = process.env.PORT || 5000;
