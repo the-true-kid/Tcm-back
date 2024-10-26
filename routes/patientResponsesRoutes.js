@@ -1,30 +1,40 @@
-// routes/patientResponsesRoutes.js
 const express = require('express');
-const { savePatientResponses, getPatientResponsesByUserId } = require('../models/patientResponsesModel');
-
 const router = express.Router();
+const pool = require('../config/dbConfig');  // Use the correct file name
+const validateColumns = require('../utils/validateColumns');
 
-// Route to save patient responses
-router.post('/submit', async (req, res) => {
-  try {
-    const { userId, responses } = req.body;
-    const savedResponse = await savePatientResponses(userId, responses);
-    res.status(201).json(savedResponse);
-  } catch (error) {
-    console.error('Error saving patient responses:', error);
-    res.status(500).json({ error: 'Failed to save patient responses' });
-  }
-});
+// Allowed columns for validation
+const allowedColumnsGPT = [
+  'id', 'form_id', 'diagnosis',
+  'food_recommendations', 'herbal_recommendations',
+  'lifestyle_recommendations', 'created_at', 'user_id'
+];
 
-// Route to get patient responses by user ID
-router.get('/:userId', async (req, res) => {
+// GET route for GPT Recommendations with dynamic column selection
+router.get('/', async (req, res) => {
   try {
-    const { userId } = req.params;
-    const responses = await getPatientResponsesByUserId(userId);
-    res.status(200).json(responses);
-  } catch (error) {
-    console.error('Error retrieving patient responses:', error);
-    res.status(500).json({ error: 'Failed to retrieve patient responses' });
+    // Parse the requested columns or default to '*'
+    const fields = req.query.fields ? req.query.fields.split(',') : ['*'];
+
+    // Validate the requested columns
+    if (fields[0] !== '*' && !validateColumns(fields, allowedColumnsGPT)) {
+      return res.status(400).json({ error: 'Invalid column name provided' });
+    }
+
+    // Join columns for the SQL query
+    const columns = fields.join(', ');
+
+    // Prepare and execute the SQL query
+    const query = `SELECT ${columns} FROM tcm_app_schema.gpt_recommendations`;
+    const { rows } = await pool.query(query);
+
+    // Send the result as JSON response
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error('Error fetching recommendations:', err.message);
+
+    // Return a more user-friendly error message
+    res.status(500).json({ error: 'An error occurred while fetching recommendations.' });
   }
 });
 
