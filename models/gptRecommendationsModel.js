@@ -21,8 +21,13 @@ const saveGptRecommendations = async (recommendation) => {
     recommendation.user_id
   ];
 
-  const result = await pool.query(query, values);
-  return result.rows[0];
+  try {
+    const result = await pool.query(query, values);
+    return result.rows[0];  // Return the saved recommendation
+  } catch (error) {
+    console.error('Error saving GPT recommendations:', error);
+    throw new Error('Database error: Failed to save GPT recommendations.');
+  }
 };
 
 // Retrieve GPT recommendations by user ID
@@ -32,8 +37,14 @@ const getGptRecommendationsByUserId = async (userId) => {
     WHERE user_id = $1 
     ORDER BY created_at DESC;
   `;
-  const result = await pool.query(query, [userId]);
-  return result.rows;
+
+  try {
+    const result = await pool.query(query, [userId]);
+    return result.rows;  // Return the recommendations
+  } catch (error) {
+    console.error('Error retrieving GPT recommendations:', error);
+    throw new Error('Database error: Failed to retrieve GPT recommendations.');
+  }
 };
 
 module.exports = { saveGptRecommendations, getGptRecommendationsByUserId };

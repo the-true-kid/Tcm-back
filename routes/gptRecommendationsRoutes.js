@@ -4,7 +4,7 @@ const axios = require('axios');
 const pool = require('../config/dbConfig');
 const { saveGptRecommendations } = require('../models/gptRecommendationsModel');
 
-// Helper function to retrieve patient responses from the database
+// Helper function to retrieve patient responses by form ID
 const getPatientResponsesByFormId = async (formId) => {
   const query = `
     SELECT * FROM tcm_app_schema.patient_responses 
@@ -14,19 +14,38 @@ const getPatientResponsesByFormId = async (formId) => {
   return result.rows[0]; // Assuming one response per form
 };
 
+// Helper function to create a new form if it doesn't exist
+const createForm = async (userId, formName) => {
+  const query = `
+    INSERT INTO tcm_app_schema.forms (user_id, form_name, created_at)
+    VALUES ($1, $2, NOW())
+    RETURNING id;
+  `;
+  const result = await pool.query(query, [userId, formName]);
+  return result.rows[0].id; // Return the generated form ID
+};
+
 // POST route to generate GPT recommendations
 router.post('/generate', async (req, res) => {
   try {
-    const { formId, userId } = req.body; // Get form ID and user ID from the request
+    const { formId, userId, formName } = req.body;
 
-    // Step 1: Retrieve patient responses from the database using form_id
-    const patientResponses = await getPatientResponsesByFormId(formId);
+    // Step 1: Check if the form exists; create it if not
+    let actualFormId = formId;
+    if (!formId) {
+      console.log('Form ID not provided. Creating a new form...');
+      actualFormId = await createForm(userId, formName);
+      console.log(`New form created with ID: ${actualFormId}`);
+    }
+
+    // Step 2: Retrieve patient responses using the form ID
+    const patientResponses = await getPatientResponsesByFormId(actualFormId);
 
     if (!patientResponses) {
       return res.status(404).json({ error: 'Patient responses not found.' });
     }
 
-    // Step 2: Call GPT API with the patient responses
+    // Step 3: Call GPT API with the patient responses
     const gptResponse = await axios.post(
       'https://api.openai.com/v1/completions',
       {
@@ -44,14 +63,14 @@ router.post('/generate', async (req, res) => {
       }
     );
 
-    // Step 3: Parse GPT's response
+    // Step 4: Parse GPT's response
     const { food_recommendations, herbal_recommendations, lifestyle_recommendations } = gptResponse.data.choices[0].text
       ? JSON.parse(gptResponse.data.choices[0].text)
       : {};
 
-    // Step 4: Save GPT recommendations to the database
+    // Step 5: Save GPT recommendations to the database
     const recommendationData = {
-      form_id: formId,
+      form_id: actualFormId,
       user_id: userId,
       diagnosis: patientResponses.diagnosis || 'N/A',
       food_recommendations,

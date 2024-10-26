@@ -6,7 +6,7 @@ require('dotenv').config(); // Load environment variables
 const authRoutes = require('./routes/auth'); // Authentication routes
 const userRoutes = require('./routes/user'); // User routes
 const patientResponsesRoutes = require('./routes/patientResponsesRoutes'); // Patient responses route
-const gptRecommendationsRoutes = require('./routes/gptRecommendationRoutes'); // GPT recommendations route
+const gptRecommendationsRoutes = require('./routes/gptRecommendationsRoutes'); // GPT recommendations route
 
 const app = express();
 

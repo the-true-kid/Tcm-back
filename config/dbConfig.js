@@ -12,8 +12,14 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
-pool.on('connect', () => {
-  console.log('Connected to the PostgreSQL database');
+// Set the search_path to use your schema on every connection
+pool.on('connect', async (client) => {
+  try {
+    await client.query('SET search_path TO tcm_app_schema');
+    console.log('Connected to the PostgreSQL database with schema set');
+  } catch (err) {
+    console.error('Error setting schema:', err);
+  }
 });
 
 pool.on('error', (err) => {
