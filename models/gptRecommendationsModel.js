@@ -1,18 +1,24 @@
-// models/gptRecommendationsModel.js
 const pool = require('../config/dbConfig');
 
-// Save ChatGPT recommendations
-const saveGptRecommendations = async (userId, recommendations) => {
+// Save GPT recommendations
+const saveGptRecommendations = async (recommendation) => {
   const query = `
-    INSERT INTO gpt_recommendations (
-      user_id, diagnosis, food_recommendations, herbal_recommendations, lifestyle_recommendations
-    ) VALUES ($1, $2, $3, $4, $5)
-    RETURNING *;
+    INSERT INTO tcm_app_schema.gpt_recommendations (
+      form_id, diagnosis, food_recommendations, 
+      herbal_recommendations, lifestyle_recommendations, 
+      user_id, created_at
+    ) VALUES (
+      $1, $2, $3, $4, $5, $6, NOW()
+    ) RETURNING *;
   `;
 
   const values = [
-    userId, recommendations.diagnosis, recommendations.foodRecommendations,
-    recommendations.herbalRecommendations, recommendations.lifestyleRecommendations
+    recommendation.form_id,
+    recommendation.diagnosis,
+    recommendation.food_recommendations,
+    recommendation.herbal_recommendations,
+    recommendation.lifestyle_recommendations,
+    recommendation.user_id
   ];
 
   const result = await pool.query(query, values);
@@ -22,7 +28,9 @@ const saveGptRecommendations = async (userId, recommendations) => {
 // Retrieve GPT recommendations by user ID
 const getGptRecommendationsByUserId = async (userId) => {
   const query = `
-    SELECT * FROM gpt_recommendations WHERE user_id = $1 ORDER BY created_at DESC;
+    SELECT * FROM tcm_app_schema.gpt_recommendations 
+    WHERE user_id = $1 
+    ORDER BY created_at DESC;
   `;
   const result = await pool.query(query, [userId]);
   return result.rows;

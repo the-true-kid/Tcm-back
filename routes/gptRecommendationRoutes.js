@@ -1,50 +1,70 @@
 const express = require('express');
-const { saveGptRecommendations, getGptRecommendationsByUserId } = require('../models/gptRecommendationsModel');
-
 const router = express.Router();
+const axios = require('axios');
+const pool = require('../config/dbConfig');
+const { saveGptRecommendations } = require('../models/gptRecommendationsModel');
 
-// Middleware to validate userId in route parameters
-const validateUserId = (req, res, next) => {
-  const { userId } = req.params;
-  if (isNaN(userId)) {
-    return res.status(400).json({ error: 'Invalid user ID format' });
-  }
-  next();
+// Helper function to retrieve patient responses from the database
+const getPatientResponsesByFormId = async (formId) => {
+  const query = `
+    SELECT * FROM tcm_app_schema.patient_responses 
+    WHERE form_id = $1;
+  `;
+  const result = await pool.query(query, [formId]);
+  return result.rows[0]; // Assuming one response per form
 };
 
-// Route to save GPT recommendations
-router.post('/submit', async (req, res) => {
+// POST route to generate GPT recommendations
+router.post('/generate', async (req, res) => {
   try {
-    const { userId, recommendations } = req.body;
+    const { formId, userId } = req.body; // Get form ID and user ID from the request
 
-    // Validate the request body
-    if (!userId || !recommendations) {
-      return res.status(400).json({ error: 'Missing userId or recommendations' });
+    // Step 1: Retrieve patient responses from the database using form_id
+    const patientResponses = await getPatientResponsesByFormId(formId);
+
+    if (!patientResponses) {
+      return res.status(404).json({ error: 'Patient responses not found.' });
     }
 
-    const savedRecommendations = await saveGptRecommendations(userId, recommendations);
-    res.status(201).json(savedRecommendations);
+    // Step 2: Call GPT API with the patient responses
+    const gptResponse = await axios.post(
+      'https://api.openai.com/v1/completions',
+      {
+        model: 'text-davinci-003',
+        prompt: `Given the following patient data, generate food, herbal, and lifestyle recommendations:
+        ${JSON.stringify(patientResponses)}`,
+        temperature: 0.7,
+        max_tokens: 500,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    // Step 3: Parse GPT's response
+    const { food_recommendations, herbal_recommendations, lifestyle_recommendations } = gptResponse.data.choices[0].text
+      ? JSON.parse(gptResponse.data.choices[0].text)
+      : {};
+
+    // Step 4: Save GPT recommendations to the database
+    const recommendationData = {
+      form_id: formId,
+      user_id: userId,
+      diagnosis: patientResponses.diagnosis || 'N/A',
+      food_recommendations,
+      herbal_recommendations,
+      lifestyle_recommendations,
+    };
+
+    const savedRecommendation = await saveGptRecommendations(recommendationData);
+
+    res.status(201).json(savedRecommendation);
   } catch (error) {
-    console.error('Error saving GPT recommendations:', error);
-    res.status(500).json({ error: 'Failed to save GPT recommendations' });
-  }
-});
-
-// Route to get GPT recommendations by user ID
-router.get('/:userId', validateUserId, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const recommendations = await getGptRecommendationsByUserId(userId);
-
-    // Check if recommendations were found
-    if (!recommendations || recommendations.length === 0) {
-      return res.status(404).json({ error: 'No recommendations found for this user' });
-    }
-
-    res.status(200).json(recommendations);
-  } catch (error) {
-    console.error('Error retrieving GPT recommendations:', error);
-    res.status(500).json({ error: 'Failed to retrieve GPT recommendations' });
+    console.error('Error generating GPT recommendations:', error);
+    res.status(500).json({ error: 'Failed to generate GPT recommendations.' });
   }
 });
 
