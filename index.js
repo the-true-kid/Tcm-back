@@ -2,16 +2,18 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const authRoutes = require('./routes/auth'); // Auth routes
-const userRoutes = require('./routes/user'); // User routes
-const patientResponsesRoutes = require('./routes/patientRoutes'); // Patient responses (renamed for clarity)
-const diagnosisRoutes = require('./routes/diagnosisRoutes'); // New route for diagnosis & recommendations
+// Import route files
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user');
+const formRoutes = require('./routes/formRoutes');  // New form routes
+const recommendationRoutes = require('./routes/recommendationRoutes');  // New recommendation routes
+const diagnosisRoutes = require('./routes/diagnosisRoutes');  // Diagnosis routes
 
-const app = express();
+const app = express();  // Create Express app
 
 // CORS Configuration
 const corsOptions = {
-  origin: 'http://localhost:3000', // Adjust if needed for production
+  origin: 'http://localhost:3000',
   credentials: true,
   allowedHeaders: ['Authorization', 'Content-Type'],
 };
@@ -22,16 +24,17 @@ app.use(cors(corsOptions));
 // Middleware to parse JSON request bodies
 app.use(express.json());
 
-// Test route to verify the server
+// Test route to verify server is running
 app.get('/ping', (req, res) => {
   res.status(200).send('pong');
 });
 
-// Mount routes
-app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/responses', patientResponsesRoutes); // For patient responses and diagnosis
-app.use('/api/diagnosis', diagnosisRoutes); // For fetching diagnosis & recommendations
+// Mount routes under /api
+app.use('/api/auth', authRoutes);                // Auth routes
+app.use('/api/user', userRoutes);                // User routes
+app.use('/api/forms', formRoutes);               // Form routes
+app.use('/api/recommendations', recommendationRoutes);  // Recommendation routes
+app.use('/api/diagnosis', diagnosisRoutes);      // Diagnosis routes
 
 // Start the server
 const PORT = process.env.PORT || 5000;

@@ -1,32 +1,26 @@
 const express = require('express');
-const authenticateToken = require('../middleware/authMiddleware'); 
-const { findUserById } = require('../models/User');
 const router = express.Router();
+const User = require('../models/User');
 
-// GET /api/user - Fetch user by ID from the token
-router.get('/', authenticateToken, async (req, res) => {
+// Create a new user
+router.post('/', async (req, res) => {
   try {
-    console.log('Decoded token:', req.user); // Log decoded token
+    const { username, email } = req.body;
+    const user = await User.create(username, email);
+    res.status(201).json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    // Fetch user from DB using the decoded token's userId
-    const user = await findUserById(req.user.user_id); 
-
-    if (!user) {
-      console.log('No user found with ID:', req.user.user_id); // Debug log
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    console.log('User fetched from DB:', user); // Log user data
-
-    // Ensure response matches the expected user fields
-    res.json({ 
-      id: user.user_id, 
-      name: user.username, 
-      email: user.email 
-    });
-  } catch (error) {
-    console.error('Error fetching user:', error.message);
-    res.status(500).json({ message: 'Server error' });
+// Get user by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

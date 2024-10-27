@@ -1,31 +1,26 @@
 const express = require('express');
-const { getDiagnosisByUserId } = require('../models/Diagnosis');
-const { getRecommendationsByDiagnosisId } = require('../models/Recommendation');
 const router = express.Router();
+const Diagnosis = require('../models/Diagnosis');
 
-// GET /api/diagnosis/:userId - Get diagnosis and recommendations by user ID
-router.get('/:userId', async (req, res) => {
-  const { userId } = req.params;
-
+// Create a new diagnosis
+router.post('/', async (req, res) => {
   try {
-    // Step 1: Get the diagnosis for the user
-    const diagnosis = await getDiagnosisByUserId(userId);
+    const { formId, diagnosisText } = req.body;
+    const diagnosis = await Diagnosis.create(formId, diagnosisText);
+    res.status(201).json(diagnosis);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    if (!diagnosis) {
-      return res.status(404).json({ message: 'Diagnosis not found for this user' });
-    }
-
-    // Step 2: Get the recommendations for the diagnosis
-    const recommendations = await getRecommendationsByDiagnosisId(diagnosis.diagnosis_id);
-
-    // Step 3: Respond with the diagnosis and recommendations
-    res.json({
-      diagnosis: diagnosis.diagnosis_summary,
-      recommendations,
-    });
-  } catch (error) {
-    console.error('Error fetching diagnosis and recommendations:', error.message);
-    res.status(500).json({ message: 'Server error' });
+// Get diagnosis by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const diagnosis = await Diagnosis.findById(req.params.id);
+    if (!diagnosis) return res.status(404).json({ error: 'Diagnosis not found' });
+    res.json(diagnosis);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

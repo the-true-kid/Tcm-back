@@ -1,21 +1,20 @@
 const pool = require('../config/dbConfig');
 
-// Save recommendations
-const createRecommendation = async (diagnosisId, text) => {
-  const result = await pool.query(
-    'INSERT INTO tcm_app_schema.recommendations (diagnosis_id, recommendation_text) VALUES ($1, $2) RETURNING *',
-    [diagnosisId, text]
-  );
-  return result.rows[0];
+const Recommendation = {
+  async create(formId, recommendationText) {
+    const query = `
+      INSERT INTO recommendations (form_id, recommendation_text) 
+      VALUES ($1, $2) 
+      RETURNING *`;
+    const { rows } = await pool.query(query, [formId, recommendationText]);
+    return rows[0];
+  },
+
+  async findById(id) {
+    const query = `SELECT * FROM recommendations WHERE id = $1`;
+    const { rows } = await pool.query(query, [id]);
+    return rows[0];
+  }
 };
 
-// Get recommendations by diagnosis ID
-const getRecommendationsByDiagnosisId = async (diagnosisId) => {
-    const result = await pool.query(
-      'SELECT recommendation_text FROM tcm_app_schema.recommendations WHERE diagnosis_id = $1',
-      [diagnosisId]
-    );
-    return result.rows.map((row) => row.recommendation_text); // Return all recommendations as an array
-  };
-
-module.exports = { createRecommendation, getRecommendationsByDiagnosisId };
+module.exports = Recommendation;
