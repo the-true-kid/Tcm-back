@@ -8,24 +8,18 @@ const recommendationService = require('./recommendationService');
 // Service: Process form submission
 const processFormSubmission = async (userId, formType, responses) => {
   try {
-    // Step 1: Create the form entry in the database
     const form = await Form.create(userId, formType);
 
-    // Step 2: Generate diagnosis based on form responses
     const diagnosisResults = await diagnosisService.getDiagnosis(responses);
     const { diagnosisText, recommendations } = diagnosisResults;
 
-    // Step 3: Save responses to the database
     await saveResponses(form.id, responses);
 
-    // Step 4: Save diagnosis in the database
     await Diagnosis.create(form.id, diagnosisText);
 
-    // Step 5: Format and save recommendations in the database
     const formattedRecommendations = recommendationService.formatRecommendations(recommendations);
     await recommendationService.saveRecommendations(form.id, formattedRecommendations, Recommendation);
 
-    // Step 6: Return results to the caller
     return {
       formId: form.id,
       diagnosisText,
@@ -52,4 +46,40 @@ const saveResponses = async (formId, responses) => {
   }
 };
 
-module.exports = { processFormSubmission };
+// Service: Get details of a specific form
+const getFormDetails = async (formId) => {
+  try {
+    const form = await Form.findById(formId);
+    if (!form) return null;
+
+    const responses = await FormResponse.findByFormId(formId);
+    const diagnosis = await Diagnosis.findById(formId);
+    const recommendation = await Recommendation.findById(formId);
+
+    return {
+      form,
+      responses,
+      diagnosis: diagnosis ? diagnosis.diagnosis_text : 'No diagnosis available.',
+      recommendation: recommendation ? recommendation.recommendation_text : 'No recommendations available.',
+    };
+  } catch (error) {
+    console.error('Error retrieving form details:', error.message);
+    throw new Error('Failed to retrieve form details.');
+  }
+};
+
+// Service: Get all forms for a specific user
+const getFormsByUserId = async (userId) => {
+  try {
+    return await Form.findByUserId(userId);
+  } catch (error) {
+    console.error('Error fetching forms for user:', error.message);
+    throw new Error('Failed to fetch forms.');
+  }
+};
+
+module.exports = { 
+  processFormSubmission, 
+  getFormDetails, 
+  getFormsByUserId 
+};
