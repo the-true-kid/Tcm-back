@@ -1,39 +1,27 @@
-const { createDiagnosis } = require('../models/Diagnosis');
-const { createRecommendation } = require('../models/Recommendation');
+const responseAnalyzer = require('./responseAnalyzer');
 
-// Logic to determine diagnosis based on symptoms
-const generateDiagnosis = (symptoms) => {
-  if (symptoms.includes('fatigue') && symptoms.includes('dry mouth')) {
-    return 'Qi Deficiency with Dampness';
-  } else if (symptoms.includes('headache') && symptoms.includes('stress')) {
-    return 'Liver Qi Stagnation';
-  } else {
-    return 'Unknown Condition - Please consult a practitioner.';
-  }
+const getDiagnosis = async (responses) => {
+  const patterns = responses.map(({ question, answer }) =>
+    responseAnalyzer.analyzeResponse(question, answer)
+  );
+
+  const aggregated = aggregateDiagnosis(patterns);
+  const diagnosisText = aggregated.join(', ');
+
+  return { diagnosisText, recommendations: aggregated };
 };
 
-// Generate recommendations based on diagnosis
-const generateRecommendations = async (diagnosisId, diagnosis) => {
-  const recommendationsMap = {
-    'Qi Deficiency with Dampness': [
-      'Drink ginger tea.',
-      'Eat warming foods like congee.',
-      'Practice light qigong.'
-    ],
-    'Liver Qi Stagnation': [
-      'Practice breathing exercises.',
-      'Drink chrysanthemum tea.',
-      'Reduce stress through meditation.'
-    ],
-    'Unknown Condition - Please consult a practitioner.': [
-      'Consult a licensed TCM practitioner for further advice.'
-    ]
-  };
+const aggregateDiagnosis = (patterns) => {
+  const counts = {};
+  patterns.flat().forEach(({ energy, organ }) => {
+    const key = `${energy} in ${organ}`;
+    counts[key] = (counts[key] || 0) + 1;
+  });
 
-  const recommendations = recommendationsMap[diagnosis] || [];
-  for (const text of recommendations) {
-    await createRecommendation(diagnosisId, text);
-  }
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3) // Top 3 diagnoses
+    .map(([key]) => key);
 };
 
-module.exports = { generateDiagnosis, generateRecommendations };
+module.exports = { getDiagnosis };

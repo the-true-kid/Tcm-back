@@ -1,25 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const FormResponse = require('../models/formResponse');
+const formResponseService = require('../services/formResponseService');
 
-// Create a new form response
+// Route: Create a new form response
 router.post('/', async (req, res) => {
   try {
     const { formId, questionId, answer } = req.body;
-    const response = await FormResponse.create(formId, questionId, answer);
+    const response = await formResponseService.createResponse(formId, questionId, answer);
     res.status(201).json(response);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error('Error creating response:', error);
+    res.status(500).json({ error: 'Failed to create response.' });
   }
 });
 
-// Get all responses for a specific form
+// Route: Get all responses for a specific form
 router.get('/form/:formId', async (req, res) => {
   try {
-    const responses = await FormResponse.findByFormId(req.params.formId);
+    const responses = await formResponseService.getResponsesByFormId(req.params.formId);
     res.json(responses);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error('Error fetching responses:', error);
+    res.status(500).json({ error: 'Failed to fetch responses.' });
   }
 });
 

@@ -1,36 +1,49 @@
 const express = require('express');
 const router = express.Router();
-const Question = require('../models/question');
+const questionService = require('../services/questionService');
 
-// Create a new question
+// Route: Create a new question
 router.post('/', async (req, res) => {
   try {
     const { questionText, questionType, questionGroup } = req.body;
-    const question = await Question.create(questionText, questionType, questionGroup);
+
+    if (!questionText || !questionType || !questionGroup) {
+      return res.status(400).json({ error: 'All question fields are required.' });
+    }
+
+    const question = await questionService.createQuestion(
+      questionText, 
+      questionType, 
+      questionGroup
+    );
+
     res.status(201).json(question);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error creating question:', err.message);
+    res.status(500).json({ error: 'Failed to create question.' });
   }
 });
 
-// Get all questions
+// Route: Get all questions
 router.get('/', async (req, res) => {
   try {
-    const questions = await Question.findAll();
+    const questions = await questionService.getAllQuestions();
     res.json(questions);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error fetching questions:', err.message);
+    res.status(500).json({ error: 'Failed to fetch questions.' });
   }
 });
 
-// Get a question by ID
+// Route: Get a question by ID
 router.get('/:id', async (req, res) => {
   try {
-    const question = await Question.findById(req.params.id);
-    if (!question) return res.status(404).json({ error: 'Question not found' });
+    const question = await questionService.getQuestionById(req.params.id);
+    if (!question) return res.status(404).json({ error: 'Question not found.' });
     res.json(question);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error fetching question:', err.message);
+    res.status(500).json({ error: 'Failed to fetch question.' });
   }
 });
 
