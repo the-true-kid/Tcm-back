@@ -1,8 +1,7 @@
-// auth.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { createUser, findUserByEmail } = require('../models/User');
+const User = require('../models/User');
 const router = express.Router();
 require('dotenv').config();
 
@@ -15,21 +14,24 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Name, email, and password are required.' });
     }
 
-    const existingUser = await findUserByEmail(email);
+    const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await createUser(name, email, hashedPassword); // Include name
+    const newUser = await User.create(name, email, hashedPassword);
 
-    res.status(201).json(user);
+    const { user_id, username } = newUser; // Extract only relevant fields
+
+    res.status(201).json({ user_id, username, email });
   } catch (error) {
     console.error('Registration error:', error.message);
     res.status(500).json({ message: 'Server error.' });
   }
 });
 
+// Login Route
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -38,7 +40,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required.' });
     }
 
-    const user = await findUserByEmail(email);
+    const user = await User.findUserByEmail(email);
     if (!user) {
       return res.status(404).json({ message: 'Invalid credentials.' });
     }
@@ -48,11 +50,17 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials.' });
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.user_id }, // Ensure user_id is correct
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
-    console.log('Generated Token:', token); // Debugging
-
-    res.json({ token });
+    res.json({ 
+      token, 
+      message: 'Login successful. Token expires in 1 hour.' 
+    });
   } catch (error) {
     console.error('Login error:', error.message);
     res.status(500).json({ message: 'Server error.' });
