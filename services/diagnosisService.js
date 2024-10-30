@@ -1,4 +1,4 @@
-const Diagnosis = require('../models/Diagnosis'); // Import Sequelize model
+const Diagnosis = require('../models/Diagnosis'); // Import raw SQL model
 const responseAnalyzer = require('./responseAnalyzer'); // Logic for analyzing responses
 const { aggregateDiagnosis } = require('../utils/diagnosisUtils'); // Utility function
 
@@ -23,10 +23,7 @@ const getDiagnosis = async (responses) => {
 // Service: Create a new diagnosis in the database
 const createDiagnosis = async (formId, diagnosisText) => {
   try {
-    const diagnosis = await Diagnosis.create({
-      form_id: formId,
-      diagnosis_text: diagnosisText,
-    });
+    const diagnosis = await Diagnosis.create(formId, diagnosisText); // Use raw SQL method
     return diagnosis;
   } catch (error) {
     console.error('Error creating diagnosis:', error.message);
@@ -37,7 +34,7 @@ const createDiagnosis = async (formId, diagnosisText) => {
 // Service: Fetch diagnosis by ID
 const getDiagnosisById = async (id) => {
   try {
-    const diagnosis = await Diagnosis.findByPk(id); // Use Sequelize's findByPk method
+    const diagnosis = await Diagnosis.getById(id); // Use raw SQL method
     if (!diagnosis) throw new Error('Diagnosis not found');
     return diagnosis;
   } catch (error) {

@@ -1,3 +1,5 @@
+// services/formService.js
+
 const Form = require('../models/Form');
 const FormResponse = require('../models/FormResponse');
 const Diagnosis = require('../models/Diagnosis');
@@ -9,7 +11,7 @@ const recommendationService = require('./recommendationService');
 const processFormSubmission = async (userId, formType, responses) => {
   try {
     // Create a new form entry
-    const form = await Form.create({ user_id: userId, form_type: formType });
+    const formId = await Form.createForm(userId, formType); // Use the new createForm method
 
     // Analyze responses to generate diagnostic patterns
     const patterns = responses.flatMap(({ question, answer }) =>
@@ -26,18 +28,18 @@ const processFormSubmission = async (userId, formType, responses) => {
     const formattedRecommendations = recommendationService.formatRecommendations(diagnoses);
 
     // Save form responses in bulk
-    await saveResponses(form.id, responses);
+    await saveResponses(formId, responses);
 
     // Save the diagnosis to the database
     const diagnosisText = aggregatedDiagnosis.map(({ diagnosis }) => diagnosis).join(', ');
-    await Diagnosis.create({ form_id: form.id, diagnosis_text: diagnosisText });
+    await Diagnosis.create(formId, diagnosisText); // Update this based on your new Diagnosis model
 
     // Save the recommendations to the database
-    await recommendationService.saveRecommendations(form.id, formattedRecommendations);
+    await recommendationService.saveRecommendations(formId, formattedRecommendations);
 
     // Return the final result
     return {
-      formId: form.id,
+      formId,
       diagnosisText,
       recommendationText: formattedRecommendations,
     };
@@ -55,7 +57,7 @@ const saveResponses = async (formId, responses) => {
       question,
       answer,
     }));
-    await FormResponse.bulkCreate(formattedResponses);
+    await FormResponse.bulkCreate(formattedResponses); // Update this based on your raw SQL model
   } catch (error) {
     console.error('Error saving form responses:', error.message);
     throw new Error('Failed to save form responses.');
@@ -65,12 +67,12 @@ const saveResponses = async (formId, responses) => {
 // Service: Get details of a specific form
 const getFormDetails = async (formId) => {
   try {
-    const form = await Form.findByPk(formId);
+    const form = await Form.getFormById(formId); // Use the new getFormById method
     if (!form) return null;
 
-    const responses = await FormResponse.findAll({ where: { form_id: formId } });
-    const diagnosis = await Diagnosis.findOne({ where: { form_id: formId } });
-    const recommendation = await Recommendation.findOne({ where: { form_id: formId } });
+    const responses = await FormResponse.getByFormId(formId); // Update this based on your raw SQL model
+    const diagnosis = await Diagnosis.getByFormId(formId); // Update this based on your raw SQL model
+    const recommendation = await Recommendation.getByFormId(formId); // Update this based on your raw SQL model
 
     return {
       form,
@@ -87,7 +89,7 @@ const getFormDetails = async (formId) => {
 // Service: Get all forms for a specific user
 const getFormsByUserId = async (userId) => {
   try {
-    const forms = await Form.findAll({ where: { user_id: userId } });
+    const forms = await Form.getFormsByUserId(userId); // Use the new getFormsByUserId method
     return forms;
   } catch (error) {
     console.error('Error fetching forms for user:', error.message);

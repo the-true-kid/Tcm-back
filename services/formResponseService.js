@@ -1,17 +1,14 @@
+// services/formResponseService.js
+
 const FormResponse = require('../models/FormResponse');
-const Question = require('../models/Question'); // For eager loading of questions
+const Question = require('../models/Question'); // If you still need this for other parts of your app
 
 // Service: Create a new form response
 const createResponse = async (formId, questionId, answer) => {
   try {
-    const response = await FormResponse.create({
-      form_id: formId,
-      question_id: questionId,
-      answer,
-    });
-    return response;
+    return await FormResponse.createResponse(formId, questionId, answer); // Call the raw SQL function
   } catch (error) {
-    console.error('Error in formResponseService:', error.message);
+    console.error('Error creating response:', error.message);
     throw new Error('Failed to create response.');
   }
 };
@@ -19,10 +16,9 @@ const createResponse = async (formId, questionId, answer) => {
 // Service: Bulk create form responses
 const bulkCreateResponses = async (responses) => {
   try {
-    const createdResponses = await FormResponse.bulkCreate(responses);
-    return createdResponses;
+    return await FormResponse.bulkCreateResponses(responses); // Call the raw SQL function
   } catch (error) {
-    console.error('Error in formResponseService (bulk create):', error.message);
+    console.error('Error bulk creating responses:', error.message);
     throw new Error('Failed to create responses in bulk.');
   }
 };
@@ -30,14 +26,9 @@ const bulkCreateResponses = async (responses) => {
 // Service: Get all responses by form ID
 const getResponsesByFormId = async (formId) => {
   try {
-    const responses = await FormResponse.findAll({
-      where: { form_id: formId },
-      include: [{ model: Question, attributes: ['question_text'] }], // Eager load related questions
-    });
-
-    return responses;
+    return await FormResponse.getResponsesByFormId(formId); // Call the raw SQL function
   } catch (error) {
-    console.error('Error in formResponseService (get by form ID):', error.message);
+    console.error('Error fetching responses:', error.message);
     throw new Error('Failed to fetch responses.');
   }
 };

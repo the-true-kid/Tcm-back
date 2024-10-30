@@ -88,47 +88,21 @@ const saveRecommendations = async (formId, recommendationsText) => {
       **Mental Health:** ${recommendationsText.mental}
     `;
 
-    return await Recommendation.create({
-      form_id: formId,
-      recommendation_text: recommendationText
-    });
+    return await Recommendation.saveRecommendation(formId, recommendationText);
   } catch (error) {
     console.error('Error saving recommendations:', error.message);
     throw new Error('Failed to save recommendations.');
   }
 };
 
-// Bulk save recommendations (if needed)
-const saveBulkRecommendations = async (formId, recommendations) => {
-  try {
-    const formattedRecommendations = recommendations.map((text) => ({
-      form_id: formId,
-      recommendation_text: text
-    }));
-
-    return await Recommendation.bulkCreate(formattedRecommendations);
-  } catch (error) {
-    console.error('Error saving bulk recommendations:', error.message);
-    throw new Error('Failed to save bulk recommendations.');
-  }
-};
-
 // Get recommendation by ID
 const getRecommendationById = async (id) => {
-  try {
-    const recommendation = await Recommendation.findByPk(id);
-    if (!recommendation) throw new Error('Recommendation not found');
-    return recommendation;
-  } catch (error) {
-    console.error('Error fetching recommendation:', error.message);
-    throw new Error('Failed to fetch recommendation.');
-  }
+  return await Recommendation.getRecommendationById(id);
 };
 
 module.exports = {
   analyzeResponse,
   formatRecommendations,
   saveRecommendations,
-  saveBulkRecommendations,
   getRecommendationById
 };
