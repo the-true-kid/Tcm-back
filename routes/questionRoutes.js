@@ -7,10 +7,12 @@ router.post('/', async (req, res) => {
   try {
     const { questionText, questionType, questionGroup } = req.body;
 
+    // Validate request body
     if (!questionText || !questionType || !questionGroup) {
       return res.status(400).json({ error: 'All question fields are required.' });
     }
 
+    // Call the service to create a question
     const question = await questionService.createQuestion(
       questionText, 
       questionType, 
@@ -27,6 +29,7 @@ router.post('/', async (req, res) => {
 // Route: Get all questions
 router.get('/', async (req, res) => {
   try {
+    // Call the service to fetch all questions
     const questions = await questionService.getAllQuestions();
     res.json(questions);
   } catch (err) {
@@ -38,8 +41,11 @@ router.get('/', async (req, res) => {
 // Route: Get a question by ID
 router.get('/:id', async (req, res) => {
   try {
+    // Call the service to fetch a question by ID
     const question = await questionService.getQuestionById(req.params.id);
-    if (!question) return res.status(404).json({ error: 'Question not found.' });
+    if (!question) {
+      return res.status(404).json({ error: 'Question not found.' });
+    }
     res.json(question);
   } catch (err) {
     console.error('Error fetching question:', err.message);

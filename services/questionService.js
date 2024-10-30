@@ -1,9 +1,14 @@
-const Question = require('../models/question');
+const Question = require('../models/Question'); // Import the Sequelize model
 
 // Service: Create a new question
 const createQuestion = async (questionText, questionType, questionGroup) => {
   try {
-    return await Question.create(questionText, questionType, questionGroup);
+    const question = await Question.create({
+      question_text: questionText,
+      question_type: questionType,
+      question_group: questionGroup,
+    });
+    return question;
   } catch (error) {
     console.error('Error in questionService:', error.message);
     throw new Error('Failed to create question.');
@@ -13,7 +18,8 @@ const createQuestion = async (questionText, questionType, questionGroup) => {
 // Service: Get all questions
 const getAllQuestions = async () => {
   try {
-    return await Question.findAll();
+    const questions = await Question.findAll();
+    return questions;
   } catch (error) {
     console.error('Error in questionService:', error.message);
     throw new Error('Failed to fetch questions.');
@@ -23,7 +29,11 @@ const getAllQuestions = async () => {
 // Service: Get a question by ID
 const getQuestionById = async (id) => {
   try {
-    return await Question.findById(id);
+    const question = await Question.findByPk(id); // Primary key lookup
+    if (!question) {
+      throw new Error('Question not found.');
+    }
+    return question;
   } catch (error) {
     console.error('Error in questionService:', error.message);
     throw new Error('Failed to fetch question.');

@@ -1,7 +1,7 @@
-const Recommendation = require('../models/Recommendation'); // Import the Recommendation model
-const { aggregateDiagnosis } = require('../utils/diagnosisUtils');  // Import shared aggregate function
+const Recommendation = require('../models/Recommendation'); // Sequelize model
+const { aggregateDiagnosis } = require('../utils/diagnosisUtils'); // Utility function
 
-// Recommendations data with severity-based advice
+// TCM recommendations data
 const recommendations = {
   'Qi Deficiency in Spleen': {
     mild: {
@@ -41,7 +41,7 @@ const recommendations = {
   }
 };
 
-// Analyze responses and generate weighted patterns
+// Analyze responses to generate diagnosis patterns
 const analyzeResponse = (question, answer) => {
   const patterns = [];
 
@@ -60,12 +60,11 @@ const analyzeResponse = (question, answer) => {
   return patterns;
 };
 
-// Format recommendations based on diagnoses and severity
+// Format recommendations based on diagnosis patterns
 const formatRecommendations = (diagnoses) => {
   const final = { diet: new Set(), lifestyle: new Set(), mental: new Set() };
 
-  diagnoses.forEach((diagnosisWithSeverity) => {
-    const [diagnosis, severity] = diagnosisWithSeverity.split(':');
+  diagnoses.forEach(({ diagnosis, severity }) => {
     const rec = recommendations[diagnosis]?.[severity] || {};
 
     if (rec.diet) final.diet.add(rec.diet);
@@ -89,27 +88,35 @@ const saveRecommendations = async (formId, recommendationsText) => {
       **Mental Health:** ${recommendationsText.mental}
     `;
 
-    return await Recommendation.create(formId, recommendationText);
+    return await Recommendation.create({
+      form_id: formId,
+      recommendation_text: recommendationText
+    });
   } catch (error) {
     console.error('Error saving recommendations:', error.message);
     throw new Error('Failed to save recommendations.');
   }
 };
 
-// Create a new recommendation (for route call)
-const createRecommendation = async (formId, recommendationText) => {
+// Bulk save recommendations (if needed)
+const saveBulkRecommendations = async (formId, recommendations) => {
   try {
-    return await Recommendation.create(formId, recommendationText);
+    const formattedRecommendations = recommendations.map((text) => ({
+      form_id: formId,
+      recommendation_text: text
+    }));
+
+    return await Recommendation.bulkCreate(formattedRecommendations);
   } catch (error) {
-    console.error('Error creating recommendation:', error.message);
-    throw new Error('Failed to create recommendation.');
+    console.error('Error saving bulk recommendations:', error.message);
+    throw new Error('Failed to save bulk recommendations.');
   }
 };
 
-// Get a recommendation by ID (for route call)
+// Get recommendation by ID
 const getRecommendationById = async (id) => {
   try {
-    const recommendation = await Recommendation.findById(id);
+    const recommendation = await Recommendation.findByPk(id);
     if (!recommendation) throw new Error('Recommendation not found');
     return recommendation;
   } catch (error) {
@@ -122,6 +129,6 @@ module.exports = {
   analyzeResponse,
   formatRecommendations,
   saveRecommendations,
-  createRecommendation,
+  saveBulkRecommendations,
   getRecommendationById
 };

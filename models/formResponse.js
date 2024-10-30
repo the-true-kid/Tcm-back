@@ -1,26 +1,40 @@
-const pool = require('../config/dbConfig');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/dbConfig'); // Import Sequelize instance
 
-const FormResponse = {
-  // Create a new form response
-  async create(formId, questionId, answer) {
-    const query = `
-      INSERT INTO tcm_app_schema.form_responses (form_id, question_id, answer) 
-      VALUES ($1, $2, $3) 
-      RETURNING *`;
-    const { rows } = await pool.query(query, [formId, questionId, answer]);
-    return rows[0];
+const FormResponse = sequelize.define(
+  'FormResponse',
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    form_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'forms',
+        key: 'id',
+      },
+    },
+    question_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'questions',
+        key: 'id',
+      },
+    },
+    answer: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
   },
-
-  // Fetch all responses for a specific form
-  async findByFormId(formId) {
-    const query = `
-      SELECT fr.id, fr.answer, q.question_text 
-      FROM tcm_app_schema.form_responses fr
-      JOIN tcm_app_schema.questions q ON fr.question_id = q.id
-      WHERE fr.form_id = $1`;
-    const { rows } = await pool.query(query, [formId]);
-    return rows;
+  {
+    tableName: 'form_responses',
+    schema: 'tcm_app_schema',
+    timestamps: false, // Disable if not using createdAt/updatedAt
   }
-};
+);
 
 module.exports = FormResponse;

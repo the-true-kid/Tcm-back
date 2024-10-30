@@ -9,6 +9,8 @@ const formRoutes = require('./routes/formRoutes'); // Form Routes
 const formResponseRoutes = require('./routes/formResponseRoutes'); // Form Response Routes
 const questionRoutes = require('./routes/questionRoutes'); 
 const diagnosisRoutes = require('./routes/diagnosisRoutes'); 
+const recommendationRoutes = require('./routes/recommendationRoutes'); // Import Recommendation Routes
+
 
 const app = express(); 
 
@@ -32,6 +34,8 @@ app.use('/api/forms', formRoutes); // Form Routes
 app.use('/api/responses', formResponseRoutes); // Form Response Routes
 app.use('/api/questions', questionRoutes); 
 app.use('/api/diagnosis', diagnosisRoutes); 
+app.use('/api/recommendations', recommendationRoutes); // Mount Recommendation Routes
+
 
 // Start the server
 const PORT = process.env.PORT || 5000;

@@ -1,29 +1,36 @@
-const pool = require('../config/dbConfig');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/dbConfig');
 
-const Form = {
-  // Create a new form
-  async create(userId, formType) {
-    const query = `
-      INSERT INTO tcm_app_schema.forms (user_id, form_type) 
-      VALUES ($1, $2) 
-      RETURNING *`;
-    const { rows } = await pool.query(query, [userId, formType]);
-    return rows[0];
+const FormResponse = sequelize.define(
+  'FormResponse',
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    form_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'forms',
+        key: 'id',
+      },
+    },
+    question: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    answer: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
   },
-
-  // Fetch all forms for a user
-  async findByUserId(userId) {
-    const query = `SELECT * FROM tcm_app_schema.forms WHERE user_id = $1`;
-    const { rows } = await pool.query(query, [userId]);
-    return rows;
-  },
-
-  // Fetch a specific form by ID
-  async findById(id) {
-    const query = `SELECT * FROM tcm_app_schema.forms WHERE id = $1`;
-    const { rows } = await pool.query(query, [id]);
-    return rows[0];
+  {
+    tableName: 'form_responses',
+    schema: 'tcm_app_schema',
+    timestamps: false,
   }
-};
+);
 
-module.exports = Form;
+module.exports = FormResponse;

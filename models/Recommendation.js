@@ -1,20 +1,32 @@
-const pool = require('../config/dbConfig');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/dbConfig'); // Import Sequelize instance
 
-const Recommendation = {
-  async create(formId, recommendationText) {
-    const query = `
-      INSERT INTO recommendations (form_id, recommendation_text) 
-      VALUES ($1, $2) 
-      RETURNING *`;
-    const { rows } = await pool.query(query, [formId, recommendationText]);
-    return rows[0];
+const Recommendation = sequelize.define(
+  'Recommendation',
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    form_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'forms', // Reference to the forms table
+        key: 'id',
+      },
+    },
+    recommendation_text: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
   },
-
-  async findById(id) {
-    const query = `SELECT * FROM recommendations WHERE id = $1`;
-    const { rows } = await pool.query(query, [id]);
-    return rows[0];
+  {
+    tableName: 'recommendations',
+    schema: 'tcm_app_schema', // Use your schema
+    timestamps: false, // Disable timestamps if not needed
   }
-};
+);
 
 module.exports = Recommendation;

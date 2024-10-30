@@ -1,31 +1,43 @@
-const Diagnosis = require('../models/Diagnosis');
-const responseAnalyzer = require('./responseAnalyzer');
-const { aggregateDiagnosis } = require('../utils/diagnosisUtils');  // Import the utility
+const Diagnosis = require('../models/Diagnosis'); // Import Sequelize model
+const responseAnalyzer = require('./responseAnalyzer'); // Logic for analyzing responses
+const { aggregateDiagnosis } = require('../utils/diagnosisUtils'); // Utility function
 
 // Service: Generate diagnosis based on form responses
 const getDiagnosis = async (responses) => {
-  const patterns = responses.map(({ question, answer }) =>
-    responseAnalyzer.analyzeResponse(question, answer)
-  );
+  try {
+    // Analyze responses and aggregate diagnosis patterns
+    const patterns = responses.map(({ question, answer }) =>
+      responseAnalyzer.analyzeResponse(question, answer)
+    );
 
-  const aggregated = aggregateDiagnosis(patterns);  // Use the utility function
-  const diagnosisText = aggregated.join(', ');
+    const aggregated = aggregateDiagnosis(patterns); // Use the utility function
+    const diagnosisText = aggregated.join(', ');
 
-  return { diagnosisText, recommendations: aggregated };
+    return { diagnosisText, recommendations: aggregated };
+  } catch (error) {
+    console.error('Error generating diagnosis:', error.message);
+    throw new Error('Failed to generate diagnosis.');
+  }
 };
 
+// Service: Create a new diagnosis in the database
 const createDiagnosis = async (formId, diagnosisText) => {
   try {
-    return await Diagnosis.create(formId, diagnosisText);
+    const diagnosis = await Diagnosis.create({
+      form_id: formId,
+      diagnosis_text: diagnosisText,
+    });
+    return diagnosis;
   } catch (error) {
     console.error('Error creating diagnosis:', error.message);
     throw new Error('Failed to create diagnosis.');
   }
 };
 
+// Service: Fetch diagnosis by ID
 const getDiagnosisById = async (id) => {
   try {
-    const diagnosis = await Diagnosis.findById(id);
+    const diagnosis = await Diagnosis.findByPk(id); // Use Sequelize's findByPk method
     if (!diagnosis) throw new Error('Diagnosis not found');
     return diagnosis;
   } catch (error) {
